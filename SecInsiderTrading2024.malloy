@@ -1,0 +1,44 @@
+source: Reporters2024 is duckdb.table('./Reporters2024.csv') extend {
+    primary_key: ACCESSION_NUMBER
+}   
+
+source: Submissions2024 is duckdb.table('./Submissions2024.csv') extend { 
+    primary_key: ACCESSION_NUMBER
+    join_one: Reporters2024 with ACCESSION_NUMBER
+}
+
+source: NonDerivTrans2024 is duckdb.table('./NonDerivTrans2024.csv') extend { 
+    rename: day1 is TRANS_DATE
+    primary_key: ACCESSION_NUMBER
+    join_one: Submissions2024 with ACCESSION_NUMBER
+    join_one: Reporters2024 with ACCESSION_NUMBER
+    rename: Security_Title is SECURITY_TITLE
+    rename: `Acquired or Disposed` is TRANS_ACQUIRED_DISP_CD
+    dimension: 
+    `Individuals Stock Sales` is (TRANS_SHARES * TRANS_PRICEPERSHARE)
+}
+
+source: NonDerivHoldings2024 is duckdb.table('./NonDerivHoldings2024.csv') extend { 
+    primary_key: ACCESSION_NUMBER
+    join_one: Submissions2024 with ACCESSION_NUMBER
+    join_one: Reporters2024 with ACCESSION_NUMBER
+    join_one: NonDerivTrans2024 with ACCESSION_NUMBER
+    measure: Value is max(VALU_OWND_FOLWNG_TRANS)
+}
+
+source: DerivTrans2024 is duckdb.table('./DerivTrans2024.csv') extend { 
+    primary_key: ACCESSION_NUMBER
+    join_one: Submissions2024 with ACCESSION_NUMBER
+    join_one: Reporters2024 with ACCESSION_NUMBER
+    join_one: NonDerivTrans2024 with ACCESSION_NUMBER
+    join_one: NonDerivHoldings2024 with ACCESSION_NUMBER
+}
+source: DerivHoldings2024 is duckdb.table('./DerivHoldings2024.csv') extend { 
+    primary_key: ACCESSION_NUMBER
+    join_one: Submissions2024 with ACCESSION_NUMBER
+    join_one: Reporters2024 with ACCESSION_NUMBER
+    join_one: NonDerivTrans2024 with ACCESSION_NUMBER
+    join_one: NonDerivHoldings2024 with ACCESSION_NUMBER
+    join_one: DerivTrans2024 with ACCESSION_NUMBER
+}
+

@@ -1,0 +1,597 @@
+>>>malloy
+import 'SecInsiderTrading2024.malloy'
+>>>markdown
+### How many submissions were there in 2024?
+>>>malloy
+run: Submissions2024 -> {
+    aggregate: `Number of Submissions` is count()
+}
+>>>markdown
+### By how many reporters? 
+>>>malloy
+run: Reporters2024 -> { 
+    aggregate: `Number of Reporters` is count(RPTOWNERNAME)
+}
+>>>markdown
+### Who had the most reports? 
+>>>malloy
+run: Reporters2024 -> { 
+    group_by: RPTOWNERNAME
+    aggregate: `Number of Reports` is count()
+    order_by: `Number of Reports` DESC
+}
+>>>markdown
+### People with the most reports?
+>>>malloy
+run: Reporters2024 -> { 
+    group_by: RPTOWNERNAME
+    aggregate: `Number of Reports` is count()
+    where: RPTOWNER_TITLE is not null
+    order_by: `Number of Reports` DESC
+    
+}
+>>>markdown
+### Grouped by the dates they filed them
+>>>malloy
+run: DerivTrans2024 -> { 
+    group_by: Reporters2024.RPTOWNERNAME
+    aggregate: `Number of Reports` is count() 
+    where: Reporters2024.RPTOWNER_TITLE is not null AND Reporters2024.RPTOWNERNAME != 'Grover Vikram P'
+    order_by: `Number of Reports` DESC
+    nest: 
+    # bar_chart
+    `When they reported Non Derivative Transactions ` is { 
+        group_by: 
+        NonDerivTrans2024.day1.week 
+        where: NonDerivTrans2024.day1.week = @2024-01-07 to @2024-12-29
+        aggregate: `When they Reported` is count()
+    }
+    
+}
+>>>markdown
+### What was the most common date to sell (dispose) non-derivative stock? 
+>>>malloy
+
+run: NonDerivTrans2024 -> { 
+    group_by: day1
+    where: `Acquired or Disposed`= 'D' 
+    aggregate: `Number of Reports Selling` is count()
+    order_by: `Number of Reports Selling` DESC
+}
+>>>markdown
+### What about buy/acquire stock? 
+>>>malloy
+run: NonDerivTrans2024 -> { 
+    group_by: day1 
+    where: `Acquired or Disposed` = 'A'
+    aggregate: `Number of Reports` is count()
+    order_by: `Number of Reports` DESC
+}
+>>>markdown
+### Biggest Transactions, who made them and for what company
+>>>malloy
+run: NonDerivTrans2024 -> { 
+    group_by: Reporters2024.RPTOWNERNAME,Submissions2024.ISSUERNAME,TRANS_SHARES, SHRS_OWND_FOLWNG_TRANS, `Acquired or Disposed`
+    where: Reporters2024.RPTOWNER_TITLE is not null
+    limit: 10000
+    order_by: TRANS_SHARES DESC 
+    
+}
+>>>markdown
+### Frequency of selling stock by month
+>>>malloy
+# bar_chart
+run: NonDerivTrans2024 -> { 
+    group_by: day1.month, `Acquired or Disposed`
+    where: `Acquired or Disposed` = 'D' AND day1 = @2024
+    aggregate: `Most Common Date` is count()
+}
+>>>markdown
+### Frequency of buying stock by month 
+>>>malloy
+# bar_chart
+run: NonDerivTrans2024 -> { 
+    group_by: day1.month, `Acquired or Disposed`
+    where: `Acquired or Disposed` = 'A' AND day1 = @2024
+    aggregate: `Most Common Date` is count()
+}
+>>>markdown
+### Layered over one another
+>>>malloy
+# line_chart 
+run: NonDerivTrans2024 -> { 
+    group_by: 
+    # x 
+    `2024` is day1.month
+    where: day1.month = @2024
+    aggregate: 
+    # y 
+    `Amount of Reports` is count() 
+    group_by: `Acquired or Disposed`
+
+
+
+}
+>>>markdown
+### What did insiders do the day after the 2024 Presidential Election?
+>>>malloy
+run: NonDerivTrans2024 -> { 
+    group_by: day1, `Acquired or Disposed`
+    where: `Acquired or Disposed` = 'D'  AND day1 = @2024-11-06
+    aggregate: `Day after Election` is count()
+    order_by: `Day after Election` DESC
+}
+>>>malloy
+run: NonDerivTrans2024 -> { 
+    group_by: day1, `Acquired or Disposed`
+    where: `Acquired or Disposed` = 'A'  AND day1 = @2024-11-06
+    aggregate: `Day after Election` is count()
+    order_by: `Day after Election` DESC
+}
+>>>markdown
+### Comparing Acquisitions to Disposals the week after the election
+>>>malloy
+run: NonDerivTrans2024 -> { 
+    group_by: day1, `Acquired or Disposed`
+    where: `Acquired or Disposed` = 'D'  AND day1 = @2024-11-06 to @2024-11-13
+    aggregate: `Day after Election` is count()
+    order_by: `Day after Election` DESC
+}
+>>>malloy
+run: NonDerivTrans2024 -> { 
+    group_by: day1, `Acquired or Disposed`
+    where: `Acquired or Disposed` = 'A'  AND day1 = @2024-11-06 to @2024-11-13
+    aggregate: `Day after Election` is count()
+    order_by: `Day after Election` DESC
+}
+>>>markdown
+### How many people became new insiders in 2024 (Form 3)?
+>>>malloy
+run: Submissions2024 -> { 
+    group_by: ISSUERNAME, ISSUERTRADINGSYMBOL
+    aggregate: `New Insiders` is count()
+    where: FORM3_HOLDINGS_REPORTED = '1'
+}
+>>>markdown
+### Which companies had the most form 4 transactions (buy/sells) in 2024? 
+>>>malloy
+run: Submissions2024 -> { 
+    group_by: ISSUERNAME, ISSUERTRADINGSYMBOL
+    aggregate: `Transactions` is count()
+    where: FORM4_TRANS_REPORTED = '1'
+}
+>>>markdown
+### Who was behind these transactions?
+>>>malloy
+run: Submissions2024 -> { 
+    group_by: ISSUERNAME, ISSUERTRADINGSYMBOL, Reporters2024.RPTOWNERNAME
+    aggregate: `Transactions` is count()
+    where: FORM4_TRANS_REPORTED = '1'
+}
+>>>markdown
+### Which state reported the most?
+>>>malloy
+# shape_map
+run: Reporters2024 -> { 
+    group_by: RPTOWNER_STATE
+    aggregate: `Number of Reports Per State` is count()
+    order_by: `Number of Reports Per State` DESC
+}
+>>>markdown
+### Most common title of reporters
+>>>malloy
+run: Reporters2024 -> { 
+    group_by: RPTOWNER_TITLE 
+    where: RPTOWNER_TITLE != null
+    aggregate: `Report Owner Titles` is count()
+    order_by: `Report Owner Titles` DESC 
+    
+}
+>>>markdown
+### Most common relationship
+>>>malloy
+run: Reporters2024 -> { 
+    group_by: RPTOWNER_RELATIONSHIP
+    where: RPTOWNER_RELATIONSHIP != null
+    aggregate: `Report Owner Totals` is count()
+    order_by: `Report Owner Totals` DESC 
+    
+}
+>>>markdown
+### How many securities are beneficially owned? 
+>>>malloy
+run: Submissions2024 -> { 
+    group_by: NO_SECURITIES_OWNED 
+    aggregate: 
+    `Securities that are Beneficially Owned` is count()
+    where: NO_SECURITIES_OWNED is not null
+}
+>>>markdown
+#### 0 (false) means that securities are beneficially owned. Beneficially owned means owned by someone who has power to control the entity, either directly or indirectly. 
+>>>markdown
+### How many reports did Mark Zuckerberg have this year?
+>>>malloy
+run: Reporters2024 -> {
+    group_by: RPTOWNERNAME
+    aggregate: `Reports Submitted` is count()
+    where: RPTOWNERNAME = 'Zuckerberg Mark'
+}
+>>>markdown
+### When were they?
+>>>malloy
+
+run: DerivTrans2024 -> {
+    group_by: Reporters2024.RPTOWNERNAME, NonDerivTrans2024.day1.month
+    aggregate: `Reports Submitted` is count(Reporters2024.ACCESSION_NUMBER)
+    where: Reporters2024.RPTOWNERNAME = 'Zuckerberg Mark'
+}
+>>>markdown
+### More details on these transactions? 
+>>>malloy
+ run: DerivTrans2024 -> {
+    group_by: Reporters2024.RPTOWNERNAME, NonDerivTrans2024.day1.month, TRANS_ACQUIRED_DISP_CD
+    aggregate: `Reports Submitted` is count(Reporters2024.ACCESSION_NUMBER)
+    where: Reporters2024.RPTOWNERNAME = 'Zuckerberg Mark'
+}   
+>>>malloy
+
+run: NonDerivTrans2024 -> {
+    group_by: Reporters2024.RPTOWNERNAME, day1, Security_Title, `Acquired or Disposed`, TRANS_SHARES, TRANS_PRICEPERSHARE
+    aggregate: `Reports Submitted` is count(Reporters2024.ACCESSION_NUMBER)
+    where: Reporters2024.RPTOWNERNAME = 'Zuckerberg Mark'
+    limit: 1000
+}
+>>>markdown
+### Who transferred the most common shares in 2024? 
+>>>malloy
+run: NonDerivTrans2024 -> { 
+    group_by: Reporters2024.RPTOWNERNAME
+    aggregate: `Transferred Shares` is sum(TRANS_SHARES)
+}
+>>>markdown
+### Who made the most money from selling common shares this year?
+>>>malloy
+run: NonDerivTrans2024 -> { 
+    group_by: 
+    Reporters2024.RPTOWNERNAME,
+    `Sold Shares` is TRANS_SHARES * TRANS_PRICEPERSHARE,
+    where: `Acquired or Disposed` = 'D' AND TRANS_PRICEPERSHARE < 129330577
+    order_by: `Sold Shares` DESC
+
+}
+>>>markdown
+Walgreens? Believe this was an error in the dataset, but Walgreens did recently get bought out by a private firm for 10 Billion. 
+>>>malloy
+run: NonDerivTrans2024 -> { 
+    group_by: Reporters2024.RPTOWNERNAME, day1, 
+    TRANS_SHARES, 
+    TRANS_PRICEPERSHARE
+    `Sold Shares` is TRANS_SHARES * TRANS_PRICEPERSHARE,
+    where: `Acquired or Disposed` = 'D' AND Reporters2024.RPTOWNERNAME = "Walgreens Boots Alliance, Inc."
+}
+>>>markdown
+### Who owns the most derivative holdings? 
+>>>malloy
+run: DerivHoldings2024 -> { 
+    group_by: Reporters2024.RPTOWNERNAME
+    aggregate: `Derivative Holdings Owned` is max(SHRS_OWND_FOLWNG_TRANS)
+}
+>>>markdown
+### Who owns the most derivative holdings and what types are they? 
+>>>malloy
+
+run: DerivHoldings2024 -> { 
+    group_by: Reporters2024.RPTOWNERNAME
+    aggregate: `Derivative Holdings Owned` is max(SHRS_OWND_FOLWNG_TRANS)
+    nest: `Types of Holdings` is { 
+        group_by: SECURITY_TITLE, UNDLYNG_SEC_TITLE
+        aggregate: `Types of Derivative Holdings` is max(SHRS_OWND_FOLWNG_TRANS)
+    }
+}
+>>>markdown
+### Individuals with the most derivative holdings and their types
+>>>malloy
+
+run: DerivHoldings2024 -> { 
+    group_by: Reporters2024.RPTOWNERNAME
+    aggregate: `Derivative Holdings Owned` is max(SHRS_OWND_FOLWNG_TRANS)
+    where: Reporters2024.RPTOWNER_TITLE is not null
+    limit: 1000
+    nest: `Types of Holdings` is { 
+        group_by: SECURITY_TITLE, UNDLYNG_SEC_TITLE
+        aggregate: `Types of Derivative Holdings` is max(SHRS_OWND_FOLWNG_TRANS)
+    }
+}
+>>>markdown
+### Most common stock owned by individuals
+>>>malloy
+run: NonDerivHoldings2024 -> { 
+    group_by: Reporters2024.RPTOWNERNAME
+    aggregate: `Non Derivative Holdings Owned` is max(SHRS_OWND_FOLWNG_TRANS)
+    where: Reporters2024.RPTOWNER_TITLE is not null
+    limit: 1000
+    nest: `Types of Holdings` is { 
+        group_by: SECURITY_TITLE 
+        aggregate: `Types of Non Derivative Holdings` is max(SHRS_OWND_FOLWNG_TRANS)
+    
+    }
+}
+>>>markdown
+### What are the most common expiration dates for derivative holdings?
+>>>malloy
+# bar_chart
+run: DerivTrans2024 -> { 
+    group_by: EXPIRATION_DATE
+    aggregate: `Most Common Expiration Dates` is count()
+    where: EXPIRATION_DATE is not null
+
+}
+>>>markdown
+### What are different examples of derivative holdings? 
+>>>malloy
+run: DerivTrans2024 -> { 
+    group_by: SECURITY_TITLE
+    limit: 10000
+}
+>>>malloy
+run: Submissions2024 -> { 
+    group_by: ISSUERNAME, ISSUERTRADINGSYMBOL
+    aggregate: `Company Submissions` is count()
+    limit: 1000
+}
+>>>markdown
+### Who had the most shares outstanding this year? Remember, this is just companies that submitted 2024.
+>>>malloy
+run: DerivHoldings2024 -> { 
+    group_by: Submissions2024.ISSUERNAME, Submissions2024.ISSUERTRADINGSYMBOL
+    aggregate: `Total shares outstanding` is max(NonDerivHoldings2024.SHRS_OWND_FOLWNG_TRANS)
+}
+>>>markdown
+### What is the most common title of people submitting reports?
+>>>malloy
+
+run: Reporters2024 -> {
+    group_by: RPTOWNER_RELATIONSHIP, RPTOWNER_TITLE
+    aggregate: `Report Owner` is count()
+    where: RPTOWNER_TITLE != 'See Remarks' 
+    where: RPTOWNER_TITLE is not null 
+ }
+>>>markdown
+### When were the most derivative stock transactions?
+>>>malloy
+run: DerivTrans2024 -> {
+    nest: 
+    # line_chart size.width=340 
+    `Derivative Stock Transactions 2024` is {
+    group_by: NonDerivTrans2024.day1.week
+    aggregate: `Report Owner` is count()
+    where: NonDerivTrans2024.day1.year = @2024
+    }
+ }
+>>>markdown
+### When were the most non-derivative stock transactions?
+>>>malloy
+run: NonDerivTrans2024 -> {
+    nest: 
+    # line_chart size.width=340 
+    `Non Derivative Stock Transactions 2024` is {
+    group_by: day1.week
+    aggregate: `Report Owner` is count()
+    where: day1.year = @2024
+    }
+ }
+>>>markdown
+### CFO's derivative and non-derivative stock transactions
+>>>malloy
+
+run: DerivTrans2024 -> {
+    nest: 
+    # line_chart size.width=340 
+    `CFO's Derivative Stock Transactions 2024` is {
+    group_by: NonDerivTrans2024.day1.week
+    aggregate: `Report Owner` is count()
+    where: Reporters2024.RPTOWNER_TITLE IN('Chief Financial Officer','CFO')
+    where: NonDerivTrans2024.day1.year = @2024
+    }
+ }
+>>>malloy
+run: NonDerivTrans2024 -> {
+    nest: 
+    # line_chart size.width=340 
+    `CFO's Non Derivative Stock Transactions 2024` is {
+    group_by: day1.week
+    aggregate: `Report Owner` is count()
+    where: Reporters2024.RPTOWNER_TITLE IN('Chief Financial Officer','CFO')
+    where: day1.year = @2024
+    }
+ }
+>>>markdown
+### CEO's Derivative and Non-derivative stock transactions
+>>>malloy
+
+run: DerivTrans2024 -> {
+     nest: 
+    # line_chart size.width=340 
+    `CEO's Derivative Stock Transactions 2024` is {
+    group_by: NonDerivTrans2024.day1.week
+    aggregate: `Report Owner` is count()
+    where: Reporters2024.RPTOWNER_TITLE IN('Chief Executive Officer','CEO') 
+    where: NonDerivTrans2024.day1.year = @2024
+    }
+ }
+>>>malloy
+
+run: NonDerivTrans2024 -> {
+     nest: 
+    # line_chart size.width=340 
+    `CEO's Non Derivative Stock Transactions 2024` is {
+    group_by: day1.week
+    aggregate: `Report Owner` is count()
+    where: Reporters2024.RPTOWNER_TITLE IN('Chief Executive Officer','CEO') 
+    where: day1.year = @2024
+    }
+ }
+>>>markdown
+### President (also President & CEO) Derivative and Non-Derivative Stock Transactions
+>>>malloy
+
+run: DerivTrans2024 -> {
+    nest: 
+    # line_chart size.width=340 
+    `President's Derivative Stock Transactions 2024` is {
+    group_by: NonDerivTrans2024.day1.week
+    aggregate: `Report Owner` is count()
+    where: Reporters2024.RPTOWNER_TITLE IN('President and CEO','President & CEO','President')
+    where: NonDerivTrans2024.day1 = @2024
+    }
+ }
+>>>malloy
+
+run: NonDerivTrans2024 -> {
+    nest: 
+    # line_chart size.width=340 
+    `President's Non Derivative Stock Transactions 2024` is {
+    group_by: day1.week
+    aggregate: `Report Owner` is count()
+    where: Reporters2024.RPTOWNER_TITLE IN('President and CEO','President & CEO','President')
+    where: day1 = @2024
+    }
+ }
+>>>markdown
+### Jeff Bezo's total stock sale this year
+>>>malloy
+run: NonDerivTrans2024 -> { 
+    group_by: Reporters2024.RPTOWNERNAME
+    aggregate: `Total Sales` is sum(`Individuals Stock Sales`)
+    where: `Acquired or Disposed` = 'D' AND Reporters2024.RPTOWNERNAME = 'BEZOS JEFFREY P'
+    }
+>>>markdown
+### When they were
+>>>malloy
+
+run: NonDerivTrans2024 -> { 
+    nest: 
+    # bar_chart size.width=340
+    `Jeff Bezos Stock Sales 2024` is {
+    group_by: day1.day
+    aggregate: `Total Sales` is sum(`Individuals Stock Sales`)
+    where: Reporters2024.RPTOWNERNAME = 'BEZOS JEFFREY P'
+    }
+}
+>>>malloy
+import 'SecInsiderTrading2020.malloy'
+>>>markdown
+### What did insiders do in the weeks leading up to COVID-19?
+>>>malloy
+# line_chart 
+run: NonDerivTrans2020 -> { 
+    group_by: 
+    # x 
+    `2020` is day1.week
+    where: day1.week = @2020-01 to @2020-04
+    aggregate: 
+    # y 
+    `Amount of Reports` is count() 
+    group_by: `Acquired or Disposed`
+
+
+
+}
+>>>markdown
+### When did reporters file the most reports in the first 2 quarters of 2020?
+>>>malloy
+run: DerivTrans2020 -> { 
+    group_by: Reporters2020.RPTOWNERNAME
+    aggregate: `Number of Reports` is count() 
+    where: Reporters2020.RPTOWNER_TITLE is not null 
+    order_by: `Number of Reports` DESC
+    nest: 
+    # bar_chart
+    `When they reported Non Derivative Transactions ` is { 
+        group_by: 
+        NonDerivTrans2020.day1.week 
+        where: NonDerivTrans2020.day1.week = @2020-01-01 to @2020-06-30
+        aggregate: `When they Reported` is count()
+    }
+    
+}
+>>>markdown
+### Comparing Non Derivative Transactions from January - April for 2020 and 2024
+>>>malloy
+run: NonDerivTrans2020 -> { 
+    group_by: day1
+    where: `Acquired or Disposed`= 'D' 
+    where: day1 = @2020-01 to @2020-04
+    aggregate: `Number of Reports Selling` is count()
+    order_by: `Number of Reports Selling` DESC
+}
+>>>malloy
+
+run: NonDerivTrans2024 -> { 
+    group_by: day1
+    where: `Acquired or Disposed`= 'D' 
+    where: day1 = @2024-01 to @2024-04
+    aggregate: `Number of Reports Selling` is count()
+    order_by: `Number of Reports Selling` DESC
+}
+>>>malloy
+run: NonDerivTrans2020 -> { 
+    group_by: day1
+    where: `Acquired or Disposed`= 'A' 
+    where: day1 = @2020-01 to @2020-04
+    aggregate: `Number of Reports Buying` is count()
+    order_by: `Number of Reports Buying` DESC
+}
+>>>malloy
+run: NonDerivTrans2024 -> { 
+    group_by: day1
+    where: `Acquired or Disposed`= 'A' 
+    where: day1 = @2024-01 to @2024-04
+    aggregate: `Number of Reports Buying` is count()
+    order_by: `Number of Reports Buying` DESC
+}
+>>>markdown
+### Derivative Transactions
+>>>malloy
+run: DerivTrans2020 -> { 
+    group_by: TRANS_DATE
+    where: TRANS_ACQUIRED_DISP_CD = 'D' 
+    where: TRANS_DATE = @2020-01 to @2020-04
+    aggregate: `Number of Reports Selling` is count()
+    order_by: `Number of Reports Selling` DESC
+}
+>>>malloy
+run: DerivTrans2024 -> { 
+    group_by: TRANS_DATE
+    where: TRANS_ACQUIRED_DISP_CD = 'D' 
+    where: TRANS_DATE = @2024-01 to @2024-04
+    aggregate: `Number of Reports Selling` is count()
+    order_by: `Number of Reports Selling` DESC
+}
+>>>malloy
+
+run: DerivTrans2020 -> { 
+    group_by: TRANS_DATE
+    where: TRANS_ACQUIRED_DISP_CD = 'A' 
+    where: TRANS_DATE = @2020-01 to @2020-04
+    aggregate: `Number of Reports Buying` is count()
+    order_by: `Number of Reports Buying` DESC
+}
+>>>malloy
+run: DerivTrans2024 -> { 
+    group_by: TRANS_DATE
+    where: TRANS_ACQUIRED_DISP_CD = 'A' 
+    where: TRANS_DATE = @2024-01 to @2024-04
+    aggregate: `Number of Reports Buying` is count()
+    order_by: `Number of Reports Buying` DESC
+}
+>>>markdown
+### Who transferred the most shares in the first two quarters of 2020?
+>>>malloy
+run: NonDerivTrans2020 -> { 
+    group_by: Reporters2020.RPTOWNERNAME,Submissions2020.ISSUERNAME,TRANS_SHARES, `Acquired or Disposed`
+    where: Reporters2020.RPTOWNER_TITLE is not null
+    limit: 10000
+    order_by: TRANS_SHARES DESC 
+    
+}

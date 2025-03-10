@@ -1,0 +1,43 @@
+source: Reporters2020 is duckdb.table('./Reporters2020.csv') extend { 
+    primary_key: ACCESSION_NUMBER
+}   
+
+source: Submissions2020 is duckdb.table('./Submissions2020.csv') extend { 
+    primary_key: ACCESSION_NUMBER
+    join_one: Reporters2020 with ACCESSION_NUMBER
+}
+
+source: NonDerivTrans2020 is duckdb.table('./NonDeriv_Trans2020.csv') extend { 
+    rename: day1 is TRANS_DATE
+    primary_key: ACCESSION_NUMBER
+    join_one: Submissions2020 with ACCESSION_NUMBER
+    join_one: Reporters2020 with ACCESSION_NUMBER
+    rename: Security_Title is SECURITY_TITLE
+    rename: `Acquired or Disposed` is TRANS_ACQUIRED_DISP_CD
+    dimension: 
+    `Individuals Stock Sales` is (TRANS_SHARES * TRANS_PRICEPERSHARE)
+}
+
+source: NonDerivHoldings2020 is duckdb.table('./NonDeriv_Holdings2020.csv') extend { 
+    primary_key: ACCESSION_NUMBER
+    join_one: Submissions2020 with ACCESSION_NUMBER
+    join_one: Reporters2020 with ACCESSION_NUMBER
+    join_one: NonDerivTrans2020 with ACCESSION_NUMBER
+    measure: Value is max(VALU_OWND_FOLWNG_TRANS)
+}
+
+source: DerivTrans2020 is duckdb.table('./Deriv_Trans2020.csv') extend { 
+    primary_key: ACCESSION_NUMBER
+    join_one: Submissions2020 with ACCESSION_NUMBER
+    join_one: Reporters2020 with ACCESSION_NUMBER
+    join_one: NonDerivTrans2020 with ACCESSION_NUMBER
+    join_one: NonDerivHoldings2020 with ACCESSION_NUMBER
+}
+source: DerivHoldings2020 is duckdb.table('./Deriv_Holdings2020.csv') extend { 
+    primary_key: ACCESSION_NUMBER
+    join_one: Submissions2020 with ACCESSION_NUMBER
+    join_one: Reporters2020 with ACCESSION_NUMBER
+    join_one: NonDerivTrans2020 with ACCESSION_NUMBER
+    join_one: NonDerivHoldings2020 with ACCESSION_NUMBER
+    join_one: DerivTrans2020 with ACCESSION_NUMBER
+}
